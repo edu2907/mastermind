@@ -5,6 +5,7 @@ class Game
 
   end
 
+  # Main Function
   def run
     start
     new_round(0)
@@ -34,7 +35,7 @@ class Game
     puts "Round #{round_n}"
     show_table
     show_players
-    @code_breaker.guess_code
+    guess = @code_breaker.guess_code
   end
 
   def show_table
@@ -63,11 +64,20 @@ class Human
     puts 'Hello Player! Insert your name here:'
     gets.chomp
   end
-  
+
   def guess_code
-    puts "\n"
-    puts "Try to guess the encoder's code and insert here:"
-    gets.chomp
+    puts "\nTry to guess the secret code and insert here:"
+    code = gets.chomp.split('')
+    if valid?(code)
+      code.map(&:to_i)
+    else
+      puts 'Invalid guess! Be sure that the code have 4 digits of unique numbers between 1 - 6'
+      guess_code
+    end
+  end
+
+  def valid?(code)
+    code.length == 4 && code.all? { |num| num.match?(/[1-6]/) } && code.eql?(code.uniq)
   end
 end
 
