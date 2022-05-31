@@ -36,6 +36,9 @@ class Game
     show_table
     show_players
     guess = @code_breaker.guess_code
+    guess_score = @encoder.calc_score(guess)
+    win_condition = @encoder.secret_code?(guess_score)
+    round_msg(win_condition)
   end
 
   def show_table
@@ -50,6 +53,14 @@ class Game
     puts "\n"
     puts "Encoder: #{@encoder.name}"
     puts "Code-Breaker: #{@code_breaker.name}"
+  end
+
+  def round_msg(win_condition)
+    if win_condition
+      puts "You guess the correct code!\n#{@code_breaker.name} wins!"
+    else
+      puts "Too bad, this isn't the correct code!"
+    end
   end
 end
 
@@ -101,6 +112,20 @@ class Computer
       end
     end
     code
+  end
+
+  def calc_score(code)
+    code.map do |digit|
+      # 0 - Not included; 1 - Included, but wrong position; 2 - Included and in correct position
+      num_guess_score = 0
+      num_guess_score = 1 if @secret_code.include?(digit)
+      num_guess_score = 2 if code.index(digit) == @secret_code.index(digit)
+      num_guess_score
+    end
+  end
+
+  def secret_code?(code_score)
+    code_score.eql?([2, 2, 2, 2])
   end
 end
 
