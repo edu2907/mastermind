@@ -2,7 +2,7 @@
 
 class Game
   def initialize
-
+    @rounds_history = Array.new(12) { {} }
   end
 
   # Main Function
@@ -41,19 +41,27 @@ class Game
   end
   
   def new_round(round_n)
-    puts "Round #{round_n}"
-    show_table
+    puts "      Round #{round_n}"
+    show_board(round_n) if round_n.positive?
     show_players
-    guess = @code_breaker.guess_code
-    guess_score = @encoder.calc_score(guess)
-    @encoder.secret_code?(guess_score)
+    # There are two properties of each obj from @rounds_history:
+    #   :guess - the code @code_breaker has guessed
+    #   :guess_score - Array of symbols that represent how close the guess was from secret code
+    #   (seek explanation for each symbol in next comment below)
+    @rounds_history[round_n][:guess] = @code_breaker.guess_code
+    @rounds_history[round_n][:guess_score] = @encoder.calc_score(@rounds_history[round_n][:guess])
+    @encoder.secret_code?(@rounds_history[round_n][:guess_score])
   end
 
-  def show_table
+  def show_board(round_n)
     puts '  ======================'
-    puts '||                      ||'
-    puts "|| 1 2 3 4    ø • o ø   ||"
-    puts '||                      ||'
+    round_n.times do |i|
+      guess = @rounds_history[i][:guess].join(' ')
+      hint_arr = @rounds_history[i][:guess_score].join(' ')
+      puts '||                      ||'
+      puts "|| #{guess}    #{hint_arr}   ||"
+      puts '||                      ||'
+    end
     puts '  ======================'
   end
 
@@ -114,16 +122,16 @@ class Computer
 
   def calc_score(code)
     code.map do |digit|
-      # 0 - Not included; 1 - Included, but wrong position; 2 - Included and in correct position
-      num_guess_score = 0
-      num_guess_score = 1 if @secret_code.include?(digit)
-      num_guess_score = 2 if code.index(digit) == @secret_code.index(digit)
+      # ◌ - Not included; O - Included, but wrong position; ● - Included and in correct position
+      num_guess_score = '◌'
+      num_guess_score = 'O' if @secret_code.include?(digit)
+      num_guess_score = '●' if code.index(digit) == @secret_code.index(digit)
       num_guess_score
     end
   end
 
   def secret_code?(code_score)
-    code_score.eql?([2, 2, 2, 2])
+    code_score.eql?(['●', '●', '●', '●'])
   end
 
   private
