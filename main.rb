@@ -8,8 +8,17 @@ class Game
   # Main Function
   def run
     start
-    new_round(0)
+    winner = @encoder.name
+    12.times do |i|
+      if new_round(i)
+        winner = @code_breaker.name
+        break
+      end
+    end
+    print_win_msg(winner)
   end
+
+  private
 
   def start
     start_msg
@@ -37,8 +46,7 @@ class Game
     show_players
     guess = @code_breaker.guess_code
     guess_score = @encoder.calc_score(guess)
-    win_condition = @encoder.secret_code?(guess_score)
-    round_msg(win_condition)
+    @encoder.secret_code?(guess_score)
   end
 
   def show_table
@@ -55,12 +63,14 @@ class Game
     puts "Code-Breaker: #{@code_breaker.name}"
   end
 
-  def round_msg(win_condition)
-    if win_condition
-      puts "You guess the correct code!\n#{@code_breaker.name} wins!"
-    else
-      puts "Too bad, this isn't the correct code!"
+  def print_win_msg(player)
+    case player
+    when @encoder.name
+      puts "Too bad, the game has ended! The secret code was #{@encoder.secret_code.join}."
+    when @code_breaker.name
+      puts 'You guessed right!'
     end
+    puts "#{player} wins!"
   end
 end
 
@@ -69,11 +79,6 @@ class Human
 
   def initialize
     @name = create_name
-  end
-
-  def create_name
-    puts 'Hello Player! Insert your name here:'
-    gets.chomp
   end
 
   def guess_code
@@ -90,28 +95,21 @@ class Human
   def valid?(code)
     code.length == 4 && code.all? { |num| num.match?(/[1-6]/) } && code.eql?(code.uniq)
   end
+
+  private
+
+  def create_name
+    puts 'Hello Player! Insert your name here:'
+    gets.chomp
+  end
 end
 
 class Computer
-  attr_reader :name
+  attr_reader :name, :secret_code
 
   def initialize
     @name = 'Computer'
     @secret_code = generate_code
-  end
-
-  def generate_code
-    code = []
-    4.times do |i|
-      loop do
-        num = rand(1..6)
-        unless code.include?(num)
-          code[i] = num
-          break
-        end
-      end
-    end
-    code
   end
 
   def calc_score(code)
@@ -126,6 +124,22 @@ class Computer
 
   def secret_code?(code_score)
     code_score.eql?([2, 2, 2, 2])
+  end
+
+  private
+
+  def generate_code
+    code = []
+    4.times do |i|
+      loop do
+        num = rand(1..6)
+        unless code.include?(num)
+          code[i] = num
+          break
+        end
+      end
+    end
+    code
   end
 end
 
