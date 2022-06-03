@@ -39,7 +39,7 @@ class Game
     @code_breaker = Human.new
     @encoder = Computer.new
   end
-  
+
   def new_round(round_n)
     puts "      Round #{round_n}"
     show_board(round_n) if round_n.positive?
@@ -47,7 +47,7 @@ class Game
     # There are two properties of each obj from @rounds_history:
     #   :guess - the code @code_breaker has guessed
     #   :guess_score - Array of symbols that represent how close the guess was from secret code
-    #   (seek explanation for each symbol in next comment below)
+    #   (seek explanation for each symbol in the comment below)
     @rounds_history[round_n][:guess] = @code_breaker.guess_code
     @rounds_history[round_n][:guess_score] = @encoder.calc_score(@rounds_history[round_n][:guess])
     @encoder.secret_code?(@rounds_history[round_n][:guess_score])
@@ -121,13 +121,14 @@ class Computer
   end
 
   def calc_score(code)
-    code.map do |digit|
-      # ◌ - Not included; O - Included, but wrong position; ● - Included and in correct position
-      num_guess_score = '◌'
-      num_guess_score = 'O' if @secret_code.include?(digit)
-      num_guess_score = '●' if code.index(digit) == @secret_code.index(digit)
+    scores_arr = code.map do |digit|
+      # 0 - Not included; 1 - Included, but wrong position; 2 - Included and in correct position
+      num_guess_score = 0
+      num_guess_score = 1 if @secret_code.include?(digit)
+      num_guess_score = 2 if code.index(digit) == @secret_code.index(digit)
       num_guess_score
     end
+    convert_each(scores_arr)
   end
 
   def secret_code?(code_score)
@@ -148,6 +149,19 @@ class Computer
       end
     end
     code
+  end
+
+  def convert_each(num_arr)
+    num_arr.sort.reverse.map do |num|
+      case num
+      when 2
+        '●'
+      when 1
+        'o'
+      when 0
+        '◌'
+      end
+    end
   end
 end
 
