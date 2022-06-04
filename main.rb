@@ -2,7 +2,7 @@
 
 class Game
   def initialize
-    @rounds_history = Array.new(12) { {} }
+    @rounds_list = Array.new(12) { {} }
   end
 
   # Main Function
@@ -23,6 +23,47 @@ class Game
   def start
     start_msg
     create_players
+    tutorial_msg
+  end
+
+  def tutorial_msg
+    print_intro
+    print_how
+    print_example
+    puts 'Press enter to continue: '
+    gets
+  end
+
+  def print_intro
+    puts "\nHello #{@code_breaker.name}! In this game, the encoder creates a secret code,
+and you, the code breaker, is responsible for decifring the
+secret code. Here are how it works:"
+  end
+
+  def print_how
+    puts "\n> 12 rounds
+> Each round, the code breaker guess a code of 4 unique numbers
+> Then the encoder check if the guess matches with the secret code
+> If not, the encoder provides a feedback about the code:
+  - A list of symbols for each number from code that represents:
+  - ● for correct number
+  - o for correct number, but in wrong position
+  - ◌ for incorrect number
+> The game end when the code breaker guess the secret code or
+all the 12 rounds ends without the code breaker decifring the code."
+  end
+
+  def print_example
+    example_list = Array.new(1) { { guess: [2, 3, 1, 4], guess_score: ['●', 'o', '◌', '◌'] } }
+    puts "\nLet's see an example:"
+    puts "Consider that the secret code is '6345'"
+    show_board(1, example_list)
+    puts "Here the code breaker has guessed the number '2314', which gave him
+these hints: '● o ◌ ◌'. One number was correct, other was correct
+but in wrong position ando two are not in the code. Here we can
+check which number was correct or not, but in real game the code
+breaker needs to use logic to discover which numbers are correct.
+Note that the feedback isn't in same order as the code numbers."
   end
 
   def start_msg
@@ -41,28 +82,28 @@ class Game
   end
 
   def new_round(round_n)
-    puts "      Round #{round_n}"
-    show_board(round_n) if round_n.positive?
+    puts "\n                           Round #{round_n}"
+    show_board(round_n, @rounds_list) if round_n.positive?
     show_players
-    # There are two properties of each obj from @rounds_history:
+    # There are two properties of each obj from @rounds_list:
     #   :guess - the code @code_breaker has guessed
     #   :guess_score - Array of symbols that represent how close the guess was from secret code
     #   (seek explanation for each symbol in the comment below)
-    @rounds_history[round_n][:guess] = @code_breaker.guess_code
-    @rounds_history[round_n][:guess_score] = @encoder.calc_score(@rounds_history[round_n][:guess])
-    @encoder.secret_code?(@rounds_history[round_n][:guess_score])
+    @rounds_list[round_n][:guess] = @code_breaker.guess_code
+    @rounds_list[round_n][:guess_score] = @encoder.calc_score(@rounds_list[round_n][:guess])
+    @encoder.secret_code?(@rounds_list[round_n][:guess_score])
   end
 
-  def show_board(round_n)
-    puts '  ======================'
-    round_n.times do |i|
-      guess = @rounds_history[i][:guess].join(' ')
-      hint_arr = @rounds_history[i][:guess_score].join(' ')
-      puts '||                      ||'
-      puts "|| #{guess}    #{hint_arr}   ||"
-      puts '||                      ||'
+  def show_board(size, rounds_list)
+    puts '                    ======================'
+    size.times do |i|
+      guess = rounds_list[i][:guess].join(' ')
+      hint_arr = rounds_list[i][:guess_score].join(' ')
+      puts '                  ||                      ||'
+      puts "                  || #{guess}    #{hint_arr}   ||"
+      puts '                  ||                      ||'
     end
-    puts '  ======================'
+    puts '                    ======================'
   end
 
   def show_players
