@@ -49,7 +49,7 @@ secret code. Here are how it works:"
 
     def print_how
       puts "\n> 12 rounds
-> Each round, the code breaker guess a code of 4 unique numbers from 1 to 6
+> Each round, the code breaker guess a code of 4 numbers from 1 to 6
 > Then the encoder check if the guess matches with the secret code
 > If not, the encoder provides a feedback about the code:
   - A list of symbols for each number from code that represents:
@@ -84,7 +84,7 @@ Note that the feedback isn't in same order as the code numbers."
     end
 
     def new_round(round_n)
-      puts "\n                           Round #{round_n}"
+      puts "\n                           Round #{round_n + 1}"
       show_board(round_n, @rounds_list) if round_n.positive?
       show_players
       # There are two properties of each obj from @rounds_list:
@@ -138,13 +138,13 @@ Note that the feedback isn't in same order as the code numbers."
       if valid?(code)
         code.map(&:to_i)
       else
-        puts 'Invalid guess! Be sure that the code have 4 digits of unique numbers between 1 - 6'
+        puts 'Invalid guess! Be sure that the code have 4 digits of numbers between 1 - 6'
         guess_code
       end
     end
 
     def valid?(code)
-      code.length == 4 && code.all? { |num| num.match?(/[1-6]/) } && code.eql?(code.uniq)
+      code.length == 4 && code.all? { |num| num.match?(/[1-6]/) }
     end
 
     private
@@ -164,14 +164,25 @@ Note that the feedback isn't in same order as the code numbers."
     end
 
     def calc_score(code)
-      scores_arr = code.map do |digit|
-        # 0 - Not included; 1 - Included, but wrong position; 2 - Included and in correct position
-        num_guess_score = 0
-        num_guess_score = 1 if @secret_code.include?(digit)
-        num_guess_score = 2 if code.index(digit) == @secret_code.index(digit)
-        num_guess_score
+      master_code = Array.new(@secret_code)
+      # 0 - Not included; 1 - Included, but in wrong position; 2 - Included and in correct position
+      scores_arr = Array.new(4, 1)
+      code.each_index do |i|
+        if code[i] == master_code[i]
+          master_code[i] = nil
+          scores_arr[i] = 2
+        end
       end
-      convert_each(scores_arr)
+      code.each_with_index do |digit, i|
+        next unless scores_arr[i] < 2
+
+        if master_code.include?(digit)
+          master_code[master_code.index(digit)] = nil
+        else
+          scores_arr[i] = 0
+        end
+      end
+      to_s(scores_arr)
     end
 
     def secret_code?(code_score)
@@ -183,18 +194,12 @@ Note that the feedback isn't in same order as the code numbers."
     def generate_code
       code = []
       4.times do |i|
-        loop do
-          num = rand(1..6)
-          unless code.include?(num)
-            code[i] = num
-            break
-          end
-        end
+        code[i] = rand(1..6)
       end
       code
     end
 
-    def convert_each(num_arr)
+    def to_s(num_arr)
       num_arr.sort.reverse.map do |num|
         case num
         when 2
