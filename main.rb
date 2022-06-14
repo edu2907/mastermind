@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Common human actions for all human classes
 module HumanActions
   def create_name
     puts 'Hello Player! Insert your name here:'
@@ -34,6 +35,8 @@ module Mastermind
  | |\/| |/ _` / __| __/ _ \ \'__| |\/| | | \'_ \ / _` |
  | |  | | (_| \__ \ ||  __/ |  | |  | | | | | | (_| |
  |_|  |_|\__,_|___/\__\___|_|  |_|  |_|_|_| |_|\__,_|'
+
+  # Main class, where the game happens
   class Game
     def initialize
       @rounds_list = Array.new(12) { {} }
@@ -163,6 +166,7 @@ Note that the feedback isn't in same order as the code numbers."
     end
   end
 
+  # Responsible for breaking the secret code
   class CodeBreaker
     attr_reader :name
 
@@ -172,6 +176,7 @@ Note that the feedback isn't in same order as the code numbers."
     end
   end
 
+  # Human Version of Code Breaker
   class HumanBreaker < CodeBreaker
     include HumanActions
     def initialize
@@ -179,12 +184,14 @@ Note that the feedback isn't in same order as the code numbers."
     end
   end
 
+  # Computer Version of Code Breaker
   class ComputerBreaker < CodeBreaker
     def initialize
       @name = 'Computer'
     end
   end
 
+  # Creates secret code and verify if code breaker guessed it
   class Encoder
     attr_reader :name, :secret_code
 
@@ -230,6 +237,7 @@ Note that the feedback isn't in same order as the code numbers."
     end
   end
 
+  # Human version of Encoder
   class HumanEncoder < Encoder
     include HumanActions
     def initialize
@@ -239,6 +247,7 @@ Note that the feedback isn't in same order as the code numbers."
     end
   end
 
+  # Computer Version of Encoder
   class ComputerEncoder < Encoder
     def initialize
       @name = 'Computer'
