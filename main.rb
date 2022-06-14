@@ -5,10 +5,10 @@ module HumanActions
   def create_name
     puts 'Hello Player! Insert your name here:'
     name = gets.chomp
-    if name == 'Computer'
-      puts 'Your name cannot be "Computer"! Try again.'
-      create_name
-    end
+    return name unless name == 'Computer'
+
+    puts 'Your name cannot be "Computer"! Try again.'
+    create_name
   end
 
   def insert_code
