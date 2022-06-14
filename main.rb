@@ -3,7 +3,11 @@
 module HumanActions
   def create_name
     puts 'Hello Player! Insert your name here:'
-    gets.chomp
+    name = gets.chomp
+    if name == 'Computer'
+      puts 'Your name cannot be "Computer"! Try again.'
+      create_name
+    end
   end
 
   def insert_code
@@ -71,6 +75,9 @@ module Mastermind
       when 'e'
         @encoder = HumanEncoder.new
         @code_breaker = ComputerBreaker.new
+      else
+        puts 'Invalid roll! Try again.'
+        create_players
       end
     end
 
@@ -161,24 +168,7 @@ Note that the feedback isn't in same order as the code numbers."
 
     def guess_code
       puts "\nTry to guess the secret code and insert here:"
-      code = gets.chomp.split('')
-      if valid?(code)
-        code.map(&:to_i)
-      else
-        puts 'Invalid guess! Be sure that the code have 4 digits of numbers between 1 - 6'
-        guess_code
-      end
-    end
-
-    def valid?(code)
-      code.length == 4 && code.all? { |num| num.match?(/[1-6]/) }
-    end
-
-    private
-
-    def create_name
-      puts 'Hello Player! Insert your name here:'
-      gets.chomp
+      insert_code
     end
   end
 
@@ -254,14 +244,14 @@ Note that the feedback isn't in same order as the code numbers."
       @name = 'Computer'
       @secret_code = generate_code
     end
-  end
 
-  def generate_code
-    code = []
-    4.times do |i|
-      code[i] = rand(1..6)
+    def generate_code
+      code = []
+      4.times do |i|
+        code[i] = rand(1..6)
+      end
+      code
     end
-    code
   end
 end
 
