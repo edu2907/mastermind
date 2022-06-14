@@ -1,5 +1,28 @@
 # frozen_string_literal: true
 
+module HumanActions
+  def create_name
+    puts 'Hello Player! Insert your name here:'
+    gets.chomp
+  end
+
+  def insert_code
+    code = gets.chomp.split('')
+    if valid?(code)
+      code.map(&:to_i)
+    else
+      puts 'Invalid code! Be sure that the code have 4 digits of numbers between 1 - 6'
+      insert_code
+    end
+  end
+
+  private
+
+  def valid?(code)
+    code.length == 4 && code.all? { |num| num.match?(/[1-6]/) }
+  end
+end
+
 module Mastermind
   LOGO = '
   __  __           _            __  __ _           _
@@ -33,6 +56,24 @@ module Mastermind
       tutorial_msg
     end
 
+    def start_msg
+      puts LOGO
+      puts "\n"
+    end
+
+    def create_players
+      puts 'Type c to choose Code Breaker roll or e for Encoder roll'
+      roll_n = gets.chomp
+      case roll_n
+      when 'c'
+        @code_breaker = HumanBreaker.new
+        @encoder = ComputerEncoder.new
+      when 'e'
+        @encoder = HumanEncoder.new
+        @code_breaker = ComputerBreaker.new
+      end
+    end
+
     def tutorial_msg
       print_intro
       print_how
@@ -42,7 +83,7 @@ module Mastermind
     end
 
     def print_intro
-      puts "\nHello #{@code_breaker.name}! In this game, the encoder creates a secret code,
+      puts "\nHello Player! In this game, the encoder creates a secret code,
 and you, the code breaker, is responsible for decifring the
 secret code. Here are how it works:"
     end
@@ -71,16 +112,6 @@ but in wrong position ando two are not in the code. Here we can
 check which number was correct or not, but in real game the code
 breaker needs to use logic to discover which numbers are correct.
 Note that the feedback isn't in same order as the code numbers."
-    end
-
-    def start_msg
-      puts LOGO
-      puts "\n"
-    end
-
-    def create_players
-      @code_breaker = Human.new
-      @encoder = Computer.new
     end
 
     def new_round(round_n)
@@ -125,12 +156,8 @@ Note that the feedback isn't in same order as the code numbers."
     end
   end
 
-  class Human
+  class CodeBreaker
     attr_reader :name
-
-    def initialize
-      @name = create_name
-    end
 
     def guess_code
       puts "\nTry to guess the secret code and insert here:"
@@ -155,13 +182,21 @@ Note that the feedback isn't in same order as the code numbers."
     end
   end
 
-  class Computer
-    attr_reader :name, :secret_code
+  class HumanBreaker < CodeBreaker
+    include HumanActions
+    def initialize
+      @name = create_name
+    end
+  end
 
+  class ComputerBreaker < CodeBreaker
     def initialize
       @name = 'Computer'
-      @secret_code = generate_code
     end
+  end
+
+  class Encoder
+    attr_reader :name, :secret_code
 
     def calc_score(code)
       master_code = Array.new(@secret_code)
@@ -191,14 +226,6 @@ Note that the feedback isn't in same order as the code numbers."
 
     private
 
-    def generate_code
-      code = []
-      4.times do |i|
-        code[i] = rand(1..6)
-      end
-      code
-    end
-
     def to_s(num_arr)
       num_arr.sort.reverse.map do |num|
         case num
@@ -211,6 +238,30 @@ Note that the feedback isn't in same order as the code numbers."
         end
       end
     end
+  end
+
+  class HumanEncoder < Encoder
+    include HumanActions
+    def initialize
+      @name = create_name
+      puts 'Insert the secret code here:'
+      @secret_code = insert_code
+    end
+  end
+
+  class ComputerEncoder < Encoder
+    def initialize
+      @name = 'Computer'
+      @secret_code = generate_code
+    end
+  end
+
+  def generate_code
+    code = []
+    4.times do |i|
+      code[i] = rand(1..6)
+    end
+    code
   end
 end
 
