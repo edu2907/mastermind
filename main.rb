@@ -12,9 +12,9 @@ module HumanActions
   end
 
   def insert_code
-    code = gets.chomp.split('')
+    code = gets.chomp
     if valid?(code)
-      code.map(&:to_i)
+      code.to_i
     else
       puts 'Invalid code! Be sure that the code have 4 digits of numbers between 1 - 6'
       insert_code
@@ -24,20 +24,48 @@ module HumanActions
   private
 
   def valid?(code)
-    code.length == 4 && code.all? { |num| num.match?(/[1-6]/) }
+    code.length == 4 && code.match?(/[1-6][1-6][1-6][1-6]/)
+  end
+end
+
+# Functions that verifys how close a given guess is to another secret code
+module PegTools
+  def calc_pegs(guess_code_n, real_code_n)
+    real_code_arr = real_code_n.to_s.split('')
+    guess_code_arr = guess_code_n.to_s.split('')
+    # 0 - Not included; 1 - Included, but in wrong position; 2 - Included and in correct position
+    pegs_arr = Array.new(4, 1)
+    guess_code_arr.each_index do |i|
+      if guess_code_arr[i] == real_code_arr[i]
+        real_code_arr[i] = nil
+        pegs_arr[i] = 2
+      end
+    end
+    guess_code_arr.each_with_index do |digit, i|
+      next unless pegs_arr[i] < 2
+
+      if real_code_arr.include?(digit)
+        real_code_arr[real_code_arr.index(digit)] = nil
+      else
+        pegs_arr[i] = 0
+      end
+    end
+    pegs_arr.sort.reverse
   end
 end
 
 module Mastermind
   LOGO = '
-  __  __           _            __  __ _           _
- |  \/  | __ _ ___| |_ ___ _ __|  \/  (_)_ __   __| |
- | |\/| |/ _` / __| __/ _ \ \'__| |\/| | | \'_ \ / _` |
- | |  | | (_| \__ \ ||  __/ |  | |  | | | | | | (_| |
- |_|  |_|\__,_|___/\__\___|_|  |_|  |_|_|_| |_|\__,_|'
+   __  __           _            __  __ _           _
+  |  \/  | __ _ ___| |_ ___ _ __|  \/  (_)_ __   __| |
+  | |\/| |/ _` / __| __/ _ \ \'__| |\/| | | \'_ \ / _` |
+  | |  | | (_| \__ \ ||  __/ |  | |  | | | | | | (_| |
+  |_|  |_|\__,_|___/\__\___|_|  |_|  |_|_|_| |_|\__,_|'
+  ALL_CODES = [1, 2, 3, 4, 5, 6].repeated_permutation(4).to_a.map { |code| code.join.to_i }
 
   # Main class, where the game happens
   class Game
+    attr_reader :rounds_list
     def initialize
       @rounds_list = Array.new(12) { {} }
     end
@@ -77,7 +105,7 @@ module Mastermind
         @encoder = ComputerEncoder.new
       when 'e'
         @encoder = HumanEncoder.new
-        @code_breaker = ComputerBreaker.new
+        @code_breaker = ComputerBreaker.new(self)
       else
         puts 'Invalid roll! Try again.'
         create_players
@@ -112,7 +140,7 @@ all the 12 rounds ends without the code breaker decifring the code."
     end
 
     def print_example
-      example_list = Array.new(1) { { guess: [2, 3, 1, 4], guess_score: ['●', 'o', '◌', '◌'] } }
+      example_list = Array.new(1) { { guess: 2314, guess_score: [2, 1, 0, 0] } }
       puts "\nLet's see an example:"
       puts "Consider that the secret code is '6345'"
       show_board(1, example_list)
@@ -133,20 +161,33 @@ Note that the feedback isn't in same order as the code numbers."
       #   :guess_score - Array of symbols that represent how close the guess was from secret code
       #   (seek explanation for each symbol in the comment below)
       @rounds_list[round_n][:guess] = @code_breaker.guess_code
-      @rounds_list[round_n][:guess_score] = @encoder.calc_score(@rounds_list[round_n][:guess])
-      @encoder.secret_code?(@rounds_list[round_n][:guess_score])
+      @rounds_list[round_n][:guess_score] = @encoder.calc_pegs(@rounds_list[round_n][:guess])
+      @encoder.real_code_arr?(@rounds_list[round_n][:guess_score])
     end
 
     def show_board(size, rounds_list)
       puts '                    ======================'
       size.times do |i|
-        guess = rounds_list[i][:guess].join(' ')
-        hint_arr = rounds_list[i][:guess_score].join(' ')
+        guess = rounds_list[i][:guess].to_s.split('').join(' ')
+        hint_arr = to_symbol(rounds_list[i][:guess_score]).join(' ')
         puts '                  ||                      ||'
         puts "                  || #{guess}    #{hint_arr}   ||"
         puts '                  ||                      ||'
       end
       puts '                    ======================'
+    end
+
+    def to_symbol(pegs)
+      pegs.map do |peg|
+        case peg
+        when 0
+          '◌'
+        when 1
+          '○'
+        when 2
+          '●'
+        end
+      end
     end
 
     def show_players
@@ -156,13 +197,13 @@ Note that the feedback isn't in same order as the code numbers."
     end
 
     def print_win_msg(player)
+      @encoder.encoder_msg
       case player
-      when @encoder.name
-        puts "Too bad, the game has ended! The secret code was #{@encoder.secret_code.join}."
-      when @code_breaker.name
-        puts 'You guessed right!'
+      when 'Computer'
+        puts "Too bad, you didn't win!"
+      else
+        puts 'You win!'
       end
-      puts "#{player} wins!"
     end
   end
 
@@ -186,54 +227,76 @@ Note that the feedback isn't in same order as the code numbers."
 
   # Computer Version of Code Breaker
   class ComputerBreaker < CodeBreaker
-    def initialize
+    include PegTools
+
+    def initialize(game)
       @name = 'Computer'
+      @last_guess = 0
+      @round_list = game.rounds_list
+      @set = ALL_CODES
+    end
+
+    def guess_code
+      puts 'Waiting for Computer play it\'s guess...'
+      last_round = @round_list.filter { |round| round[:guess] == @last_guess }
+      @last_guess = calc_next_guess(@last_guess, last_round)
+    end
+
+    private
+
+    # Donald Knuth's algoritm to calculate next guess
+    def calc_next_guess(last_guess, last_round)
+      return 1122 if last_guess.zero?
+
+      @set = f_eql_pegs(last_guess, last_round[0][:guess_score])
+      g_possibilites = calc_each_score
+      g_max_score = filter_highest_score(g_possibilites)
+      pick_code(g_max_score)
+    end
+
+    def f_eql_pegs(guess, pegs)
+      @set.filter do |code|
+        calc_pegs(code, guess) == pegs
+      end
+    end
+
+    def calc_each_score
+      @set.map do |g|
+        g_scores = @set.map do |c|
+          g_pegs = calc_pegs(g, c)
+          new_set = f_eql_pegs(c, g_pegs)
+          eliminated = @set - new_set
+          eliminated.length
+        end
+        { code: g, min_score: g_scores.min }
+      end
+    end
+
+    def filter_highest_score(g_list)
+      max_score = g_list.max { |a, b| a[:min_score] <=> b[:min_score] }[:min_score]
+      g_list.filter { |guess| guess[:min_score] == max_score }
+    end
+
+    def pick_code(g_list)
+      g_list[rand(g_list.size - 1)][:code]
     end
   end
 
   # Creates secret code and verify if code breaker guessed it
   class Encoder
-    attr_reader :name, :secret_code
+    include PegTools
+    attr_reader :name
 
-    def calc_score(code)
-      master_code = Array.new(@secret_code)
-      # 0 - Not included; 1 - Included, but in wrong position; 2 - Included and in correct position
-      scores_arr = Array.new(4, 1)
-      code.each_index do |i|
-        if code[i] == master_code[i]
-          master_code[i] = nil
-          scores_arr[i] = 2
-        end
-      end
-      code.each_with_index do |digit, i|
-        next unless scores_arr[i] < 2
-
-        if master_code.include?(digit)
-          master_code[master_code.index(digit)] = nil
-        else
-          scores_arr[i] = 0
-        end
-      end
-      to_s(scores_arr)
+    def calc_pegs(guess)
+      super(guess, @secret_code)
     end
 
-    def secret_code?(code_score)
-      code_score.eql?(['●', '●', '●', '●'])
+    def real_code_arr?(code_score)
+      code_score.eql?([2, 2, 2, 2])
     end
 
-    private
-
-    def to_s(num_arr)
-      num_arr.sort.reverse.map do |num|
-        case num
-        when 2
-          '●'
-        when 1
-          'o'
-        when 0
-          '◌'
-        end
-      end
+    def encoder_msg
+      puts "The secret code was #{@secret_code}"
     end
   end
 
@@ -259,7 +322,7 @@ Note that the feedback isn't in same order as the code numbers."
       4.times do |i|
         code[i] = rand(1..6)
       end
-      code
+      code.join.to_i
     end
   end
 end
