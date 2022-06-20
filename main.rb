@@ -279,7 +279,6 @@ Note that the feedback isn't in same order as the code numbers."
 
     private
 
-    # Donald Knuth's algoritm to calculate next guess
     def calc_next_guess(last_guess, last_round)
       return 1122 if last_guess.zero?
 
